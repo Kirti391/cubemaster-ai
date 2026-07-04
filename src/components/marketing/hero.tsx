@@ -4,7 +4,7 @@ import Container from "@/src/components/shared/container";
 import CubeScene from "@/src/modules/cube-viewer/components/cube-scene";
 export default function Hero() {
     return (
-       <section className="relative overflow-hidden pt-28 pb-20 lg:pt-24">
+       <section className="relative overflow-hidden pt-28 pb-6 lg:pt-24">
             {/* Background Glow */}
             <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_top,rgba(59,130,246,0.18),transparent_45%),radial-gradient(circle_at_bottom_right,rgba(139,92,246,0.15),transparent_40%)]" />
 
