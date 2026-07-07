@@ -6,4 +6,10 @@ export type CubeFace =
   | "Top"
   | "Bottom";
 
-export type CapturedFaces = Partial<Record<CubeFace, string>>;
+export type FaceCapture = {
+  image: string;
+  completed: boolean;
+  timestamp: number;
+};
+
+export type CapturedFaces = Partial<Record<CubeFace, FaceCapture>>;

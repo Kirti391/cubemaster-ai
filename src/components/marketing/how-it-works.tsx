@@ -1,18 +1,30 @@
 import Container from "@/src/components/shared/container";
 import StepCard from "./step-card";
 import { HOW_IT_WORKS } from "@/src/config/how-it-works";
+import SectionHeader from "../shared/section-header";
 
 export default function HowItWorks() {
   return (
-    <section className="py-28">
+    <section className="py-20">
 
       <Container>
 
         {/* Heading */}
 
         <div className="mx-auto mb-20 max-w-3xl text-center">
-
-          <span className="rounded-full border border-cyan-500/20 bg-cyan-500/10 px-4 py-2 text-sm text-cyan-300">
+{/* <SectionHeader
+  badge="Process"
+  title="How"
+  highlight="CubeMaster AI Works"
+  description="Solve your cube in four simple AI-powered steps."
+/> */}
+<SectionHeader
+  badge="How It Works"
+  title="Solve Any Cube with"
+  highlight="AI Guidance"
+  description="Capture your cube, let our AI recognize every sticker, generate the optimal solution, and follow step-by-step 3D instructions."
+/>
+          {/* <span className="rounded-full border border-cyan-500/20 bg-cyan-500/10 px-4 py-2 text-sm text-cyan-300">
             Process
           </span>
 
@@ -34,7 +46,7 @@ export default function HowItWorks() {
 
             Solve your cube in four simple AI-powered steps.
 
-          </p>
+          </p> */}
 
         </div>
 

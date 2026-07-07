@@ -1,15 +1,29 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Webcam from "react-webcam";
+
 import { Button } from "@/src/components/ui/button";
+
 import ScannerOverlay from "./scanner-overlay";
+import ScannerComplete from "./scanner-complete";
+
+import {
+  readImage,
+  preprocess,
+  matToCanvas,
+  detectCube,
+} from "../opencv";
+
+import { useOpenCV } from "../hooks/use-opencv";
 
 type Props = {
   currentFace: string;
   captureFace: (image: string) => void;
   isComplete: boolean;
 };
+
+const REQUIRED_STABLE_FRAMES = 5;
 
 export default function CameraPreview({
   currentFace,
@@ -18,40 +32,186 @@ export default function CameraPreview({
 }: Props) {
   const webcamRef = useRef<Webcam>(null);
 
-  const [capturedImage, setCapturedImage] = useState<string | null>(null);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const detectionInterval = useRef<number | null>(null);
 
+  const { ready: opencvReady } = useOpenCV();
+
+  const [capturedImage, setCapturedImage] =
+    useState<string | null>(null);
+
+  const [processedImage, setProcessedImage] =
+    useState<string | null>(null);
+
+  const [cubeDetected, setCubeDetected] =
+    useState(false);
+
+  const [stableFrames, setStableFrames] =
+    useState(0);
+
+  const [isAnalyzing, setIsAnalyzing] =
+    useState(false);
+
+  const [detecting, setDetecting] =
+    useState(false);
+
+  const [autoCapturing, setAutoCapturing] =
+    useState(false);
+
+  /**
+   * Capture current frame
+   */
   const handleCapture = async () => {
-    const imageSrc = webcamRef.current?.getScreenshot();
+    if (!opencvReady || isAnalyzing) return;
+
+    const imageSrc =
+      webcamRef.current?.getScreenshot();
 
     if (!imageSrc) return;
 
-    // Show preview
     setCapturedImage(imageSrc);
-
-    // Start AI analysis
     setIsAnalyzing(true);
 
-    // Fake AI processing (replace later with real API)
-    await new Promise((resolve) => setTimeout(resolve, 1800));
+    try {
+      const mat = await readImage(imageSrc);
 
-    setIsAnalyzing(false);
+      const edges = preprocess(mat);
 
-    // Save captured face
-    captureFace(imageSrc);
+      const processed =
+        matToCanvas(edges);
+
+      setProcessedImage(processed);
+
+      edges.delete();
+      mat.delete();
+
+      captureFace(imageSrc);
+
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsAnalyzing(false);
+    }
   };
+
+  /**
+   * Automatic capture
+   */
+  const autoCapture = async () => {
+    if (autoCapturing) return;
+
+    setAutoCapturing(true);
+
+    await handleCapture();
+
+    setStableFrames(0);
+
+    setAutoCapturing(false);
+  };
+
+  /**
+   * Live Detection
+   */
+  const analyzeFrame = async () => {
+    if (!opencvReady) return;
+
+    if (detecting) return;
+
+    const imageSrc =
+      webcamRef.current?.getScreenshot();
+
+    if (!imageSrc) return;
+
+    setDetecting(true);
+
+    try {
+      const mat = await readImage(imageSrc);
+
+      const edges = preprocess(mat);
+
+      const result = detectCube(edges);
+
+      setCubeDetected(result.detected);
+
+      if (result.detected) {
+        const nextStable = Math.min(
+          stableFrames + 1,
+          REQUIRED_STABLE_FRAMES
+        );
+
+        setStableFrames(nextStable);
+
+        if (
+          nextStable >= REQUIRED_STABLE_FRAMES &&
+          !autoCapturing &&
+          !isAnalyzing
+        ) {
+          autoCapture();
+        }
+
+      } else {
+        setStableFrames(0);
+      }
+
+      edges.delete();
+      mat.delete();
+
+      result.contour?.delete?.();
+
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setDetecting(false);
+    }
+  };
+
+  /**
+   * Start Detection Loop
+   */
+  useEffect(() => {
+    if (!opencvReady) return;
+
+    detectionInterval.current =
+      window.setInterval(() => {
+        analyzeFrame();
+      }, 250);
+
+    return () => {
+      if (detectionInterval.current) {
+        clearInterval(
+          detectionInterval.current
+        );
+      }
+    };
+  }, [
+    opencvReady,
+    stableFrames,
+    autoCapturing,
+    isAnalyzing,
+  ]);
+
+  if (isComplete) {
+    return (
+      <ScannerComplete
+        onContinue={() =>
+          console.log("Continue")
+        }
+      />
+    );
+  }
 
   return (
     <div className="space-y-6 rounded-3xl border border-white/10 bg-white/5 p-6">
 
-      {/* Current Face */}
       <h2 className="text-center text-2xl font-bold">
         Scan the{" "}
-        <span className="text-cyan-400">{currentFace}</span> Face
+        <span className="text-cyan-400">
+          {currentFace}
+        </span>{" "}
+        Face
       </h2>
 
-      {/* Webcam */}
       <div className="relative overflow-hidden rounded-2xl border border-white/10">
+
         <Webcam
           ref={webcamRef}
           audio={false}
@@ -68,51 +228,116 @@ export default function CameraPreview({
         <ScannerOverlay />
       </div>
 
-      {/* Capture Button */}
-      <Button
-        onClick={handleCapture}
-        disabled={isComplete || isAnalyzing}
-        className="w-full"
+      <div
+        className={`rounded-xl border p-4 text-center font-semibold transition ${
+          cubeDetected
+            ? "border-green-500/30 bg-green-500/10 text-green-400"
+            : "border-red-500/30 bg-red-500/10 text-red-400"
+        }`}
       >
-        {isComplete
-          ? "All Faces Captured"
-          : isAnalyzing
-          ? "Analyzing..."
-          : "Capture Face"}
-      </Button>
+        {cubeDetected
+          ? "🟢 Cube Detected"
+          : "🔴 Searching for Cube"}
+      </div>
 
-      {/* AI Loader */}
+      <div className="space-y-2">
+
+        <div className="flex justify-between text-xs text-zinc-400">
+
+          <span>Alignment Stability</span>
+
+          <span>
+            {stableFrames}/
+            {REQUIRED_STABLE_FRAMES}
+          </span>
+
+        </div>
+
+        <div className="h-2 rounded-full bg-white/10">
+
+          <div
+            className="h-full rounded-full bg-cyan-400 transition-all duration-200"
+            style={{
+              width: `${
+                (stableFrames /
+                  REQUIRED_STABLE_FRAMES) *
+                100
+              }%`,
+            }}
+          />
+
+        </div>
+
+      </div>
+
+      {autoCapturing && (
+        <div className="rounded-xl border border-cyan-500/20 bg-cyan-500/10 p-3 text-center text-sm font-medium text-cyan-300">
+          📸 Cube aligned. Capturing automatically...
+        </div>
+      )}
+
+      {!autoCapturing && (
+        <Button
+          onClick={handleCapture}
+          disabled={
+            !opencvReady ||
+            isAnalyzing
+          }
+          className="w-full"
+        >
+          {!opencvReady
+            ? "Loading OpenCV..."
+            : isAnalyzing
+            ? "Analyzing..."
+            : "Manual Capture"}
+        </Button>
+      )}
+
       {isAnalyzing && (
         <div className="rounded-2xl border border-cyan-500/20 bg-cyan-500/5 p-5 text-center">
 
           <div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-2 border-cyan-400 border-t-transparent" />
 
           <h3 className="font-semibold text-cyan-400">
-            AI Processing Image
+            Running OpenCV...
           </h3>
 
           <p className="mt-2 text-sm text-zinc-400">
-            Detecting cube stickers...
+            Detecting cube contours...
           </p>
 
-          <p className="text-sm text-zinc-500">
-            Validating colors and cube orientation...
-          </p>
         </div>
       )}
 
-      {/* Last Captured Preview */}
       {capturedImage && (
         <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+
           <h3 className="mb-3 text-sm font-semibold text-zinc-300">
-            Last Captured Face
+            Last Capture
           </h3>
 
           <img
             src={capturedImage}
-            alt="Captured cube face"
-            className="w-full rounded-xl border border-white/10"
+            alt="Captured"
+            className="rounded-xl"
           />
+
+        </div>
+      )}
+
+      {processedImage && (
+        <div className="rounded-2xl border border-cyan-500/20 bg-cyan-500/5 p-4">
+
+          <h3 className="mb-3 text-sm font-semibold text-cyan-300">
+            OpenCV Edge Detection
+          </h3>
+
+          <img
+            src={processedImage}
+            alt="Processed"
+            className="rounded-xl"
+          />
+
         </div>
       )}
 

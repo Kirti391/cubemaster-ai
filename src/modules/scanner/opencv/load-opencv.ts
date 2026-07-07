@@ -1,15 +1,35 @@
-import cv from "@techstark/opencv-js";
+let isLoaded = false;
 
-let loaded = false;
+export async function loadOpenCV(): Promise<void> {
+  if (isLoaded) return;
 
-export async function loadOpenCV() {
-  if (loaded) return cv;
+  return new Promise((resolve, reject) => {
+    // Already loaded
+    if ((window as any).cv?.Mat) {
+      isLoaded = true;
+      resolve();
+      return;
+    }
 
-  return new Promise<typeof cv>((resolve) => {
-    cv.onRuntimeInitialized = () => {
-      loaded = true;
-      console.log("✅ OpenCV Loaded");
-      resolve(cv);
+    const script = document.createElement("script");
+
+    script.src = "/opencv/opencv.js";
+    script.async = true;
+
+    script.onload = () => {
+      const cv = (window as any).cv;
+
+      cv.onRuntimeInitialized = () => {
+        console.log("✅ OpenCV Loaded");
+
+        isLoaded = true;
+
+        resolve();
+      };
     };
+
+    script.onerror = () => reject("Failed to load OpenCV");
+
+    document.body.appendChild(script);
   });
 }

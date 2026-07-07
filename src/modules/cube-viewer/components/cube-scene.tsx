@@ -9,7 +9,13 @@ import {
 } from "@react-three/drei";
 import RubiksCube from "./rubiks-cube";
 
-export default function CubeScene() {
+type CubeSceneProps = {
+    activeStep?: number;
+};
+
+export default function CubeScene({
+    activeStep = 0,
+}: CubeSceneProps) {
   return (
     <div className="h-[500px] w-full">
       <Canvas shadows>
