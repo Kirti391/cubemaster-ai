@@ -4,6 +4,7 @@ import ScannerHeader from "./scanner-header";
 import CameraPreview from "./camera-preview";
 import UploadPanel from "./upload-panel";
 import { useCamera } from "../hooks/use-camera";
+import ScannerSidebar from "./scanner-sidebar";
 
 export default function ScannerLayout() {
   const camera = useCamera();
@@ -22,11 +23,31 @@ export default function ScannerLayout() {
           /> */}
 
         <CameraPreview
-    currentFace={camera.currentFace}
-    captureFace={camera.captureFace}
-    isComplete={camera.isComplete}
+  currentFace={camera.currentFace}
+  captureFace={camera.captureFace}
+  isComplete={camera.isComplete}
+
+  cubeDetected={camera.cubeDetected}
+  setCubeDetected={camera.setCubeDetected}
+
+  stableFrames={camera.stableFrames}
+  setStableFrames={camera.setStableFrames}
+
+  isAnalyzing={camera.isAnalyzing}
+  setIsAnalyzing={camera.setIsAnalyzing}
+
+  autoCapturing={camera.autoCapturing}
+  setAutoCapturing={camera.setAutoCapturing}
 />
 
+<ScannerSidebar
+  currentFace={camera.currentFace}
+  cubeDetected={camera.cubeDetected}
+  stableFrames={camera.stableFrames}
+  requiredFrames={5}
+  autoCapturing={camera.autoCapturing}
+  isAnalyzing={camera.isAnalyzing}
+/>
 <UploadPanel
   capturedFaces={camera.capturedFaces}
   progress={camera.progress}

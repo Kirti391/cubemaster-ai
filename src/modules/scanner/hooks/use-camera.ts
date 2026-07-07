@@ -9,7 +9,13 @@ export function useCamera() {
 
   const [capturedFaces, setCapturedFaces] =
     useState<CapturedFaces>({});
+const [cubeDetected, setCubeDetected] = useState(false);
 
+const [stableFrames, setStableFrames] = useState(0);
+
+const [isAnalyzing, setIsAnalyzing] = useState(false);
+
+const [autoCapturing, setAutoCapturing] = useState(false);
   // Capture current face
   const captureFace = (image: string) => {
     const currentFace = CUBE_FACES[currentFaceIndex] as CubeFace;
@@ -56,7 +62,23 @@ const resetScanner = () => {
 
   const isComplete = progress === CUBE_FACES.length;
 
- return {
+//  return {
+//   currentFace: CUBE_FACES[currentFaceIndex],
+//   currentFaceIndex,
+
+//   capturedFaces,
+
+//   captureFace,
+
+//   progress,
+
+//   isComplete,
+
+//   goToFace,
+//   retakeFace,
+//   resetScanner,
+// };
+return {
   currentFace: CUBE_FACES[currentFaceIndex],
   currentFaceIndex,
 
@@ -71,5 +93,17 @@ const resetScanner = () => {
   goToFace,
   retakeFace,
   resetScanner,
+
+  // Scanner State
+  cubeDetected,
+  stableFrames,
+  isAnalyzing,
+  autoCapturing,
+
+  // Setters
+  setCubeDetected,
+  setStableFrames,
+  setIsAnalyzing,
+  setAutoCapturing,
 };
 }

@@ -8,3 +8,4 @@ export * from "./perspective";
 export * from "./detect-grid";
 export * from "./detect-colors";
 export * from "./validator";
+export * from "./find-largest-square";

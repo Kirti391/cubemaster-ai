@@ -17,12 +17,38 @@ import {
 
 import { useOpenCV } from "../hooks/use-opencv";
 
+// type Props = {
+//   currentFace: string;
+//   captureFace: (image: string) => void;
+//   isComplete: boolean;
+// };
 type Props = {
   currentFace: string;
-  captureFace: (image: string) => void;
-  isComplete: boolean;
-};
 
+  captureFace: (image: string) => void;
+
+  isComplete: boolean;
+
+  cubeDetected: boolean;
+  setCubeDetected: React.Dispatch<
+    React.SetStateAction<boolean>
+  >;
+
+  stableFrames: number;
+  setStableFrames: React.Dispatch<
+    React.SetStateAction<number>
+  >;
+
+  isAnalyzing: boolean;
+  setIsAnalyzing: React.Dispatch<
+    React.SetStateAction<boolean>
+  >;
+
+  autoCapturing: boolean;
+  setAutoCapturing: React.Dispatch<
+    React.SetStateAction<boolean>
+  >;
+};
 const REQUIRED_STABLE_FRAMES = 5;
 
 export default function CameraPreview({
@@ -42,20 +68,20 @@ export default function CameraPreview({
   const [processedImage, setProcessedImage] =
     useState<string | null>(null);
 
-  const [cubeDetected, setCubeDetected] =
-    useState(false);
+  // const [cubeDetected, setCubeDetected] =
+  //   useState(false);
 
-  const [stableFrames, setStableFrames] =
-    useState(0);
+  // const [stableFrames, setStableFrames] =
+  //   useState(0);
 
-  const [isAnalyzing, setIsAnalyzing] =
-    useState(false);
+  // const [isAnalyzing, setIsAnalyzing] =
+  //   useState(false);
 
   const [detecting, setDetecting] =
     useState(false);
 
-  const [autoCapturing, setAutoCapturing] =
-    useState(false);
+  // const [autoCapturing, setAutoCapturing] =
+  //   useState(false);
 
   /**
    * Capture current frame
