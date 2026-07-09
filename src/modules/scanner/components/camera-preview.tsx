@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Webcam from "react-webcam";
 
 import { Button } from "@/src/components/ui/button";
@@ -17,48 +17,53 @@ import {
 
 import { useOpenCV } from "../hooks/use-opencv";
 
-// type Props = {
-//   currentFace: string;
-//   captureFace: (image: string) => void;
-//   isComplete: boolean;
-// };
 type Props = {
   currentFace: string;
-
   captureFace: (image: string) => void;
-
   isComplete: boolean;
 
   cubeDetected: boolean;
-  setCubeDetected: React.Dispatch<
-    React.SetStateAction<boolean>
-  >;
+  setCubeDetected: React.Dispatch<React.SetStateAction<boolean>>;
 
   stableFrames: number;
-  setStableFrames: React.Dispatch<
-    React.SetStateAction<number>
-  >;
+  setStableFrames: React.Dispatch<React.SetStateAction<number>>;
 
   isAnalyzing: boolean;
-  setIsAnalyzing: React.Dispatch<
-    React.SetStateAction<boolean>
-  >;
+  setIsAnalyzing: React.Dispatch<React.SetStateAction<boolean>>;
 
   autoCapturing: boolean;
-  setAutoCapturing: React.Dispatch<
-    React.SetStateAction<boolean>
-  >;
+  setAutoCapturing: React.Dispatch<React.SetStateAction<boolean>>;
 };
+
 const REQUIRED_STABLE_FRAMES = 5;
 
 export default function CameraPreview({
   currentFace,
   captureFace,
   isComplete,
+
+  cubeDetected,
+  setCubeDetected,
+
+  stableFrames,
+  setStableFrames,
+
+  isAnalyzing,
+  setIsAnalyzing,
+
+  autoCapturing,
+  setAutoCapturing,
 }: Props) {
   const webcamRef = useRef<Webcam>(null);
 
   const detectionInterval = useRef<number | null>(null);
+
+  const detectingRef = useRef(false);
+  const captureLockRef = useRef(false);
+
+  const stableFramesRef = useRef(stableFrames);
+  const analyzingRef = useRef(isAnalyzing);
+  const autoCapturingRef = useRef(autoCapturing);
 
   const { ready: opencvReady } = useOpenCV();
 
@@ -68,91 +73,110 @@ export default function CameraPreview({
   const [processedImage, setProcessedImage] =
     useState<string | null>(null);
 
-  // const [cubeDetected, setCubeDetected] =
-  //   useState(false);
+  useEffect(() => {
+    stableFramesRef.current = stableFrames;
+  }, [stableFrames]);
 
-  // const [stableFrames, setStableFrames] =
-  //   useState(0);
+  useEffect(() => {
+    analyzingRef.current = isAnalyzing;
+  }, [isAnalyzing]);
 
-  // const [isAnalyzing, setIsAnalyzing] =
-  //   useState(false);
-
-  const [detecting, setDetecting] =
-    useState(false);
-
-  // const [autoCapturing, setAutoCapturing] =
-  //   useState(false);
+  useEffect(() => {
+    autoCapturingRef.current = autoCapturing;
+  }, [autoCapturing]);
 
   /**
    * Capture current frame
    */
-  const handleCapture = async () => {
-    if (!opencvReady || isAnalyzing) return;
+  const handleCapture = useCallback(async () => {
+    if (!opencvReady) return;
+
+    if (captureLockRef.current) return;
+
+    captureLockRef.current = true;
+
+    setIsAnalyzing(true);
 
     const imageSrc =
       webcamRef.current?.getScreenshot();
 
-    if (!imageSrc) return;
+    if (!imageSrc) {
+      captureLockRef.current = false;
+      setIsAnalyzing(false);
+      return;
+    }
 
     setCapturedImage(imageSrc);
-    setIsAnalyzing(true);
+
+    let mat: any;
+    let edges: any;
 
     try {
-      const mat = await readImage(imageSrc);
+      mat = await readImage(imageSrc);
 
-      const edges = preprocess(mat);
+      edges = preprocess(mat);
 
       const processed =
         matToCanvas(edges);
 
       setProcessedImage(processed);
 
-      edges.delete();
-      mat.delete();
-
       captureFace(imageSrc);
-
     } catch (err) {
       console.error(err);
     } finally {
+      edges?.delete();
+      mat?.delete();
+
       setIsAnalyzing(false);
+
+      captureLockRef.current = false;
     }
-  };
+  }, [
+    opencvReady,
+    captureFace,
+    setIsAnalyzing,
+  ]);
 
   /**
    * Automatic capture
    */
-  const autoCapture = async () => {
-    if (autoCapturing) return;
+  const autoCapture = useCallback(async () => {
+    if (autoCapturingRef.current) return;
 
     setAutoCapturing(true);
 
     await handleCapture();
 
+    stableFramesRef.current = 0;
     setStableFrames(0);
 
     setAutoCapturing(false);
-  };
-
-  /**
+  }, [
+    handleCapture,
+    setAutoCapturing,
+    setStableFrames,
+  ]);  /**
    * Live Detection
    */
-  const analyzeFrame = async () => {
+  const analyzeFrame = useCallback(async () => {
     if (!opencvReady) return;
 
-    if (detecting) return;
+    if (detectingRef.current) return;
 
-    const imageSrc =
-      webcamRef.current?.getScreenshot();
+    const imageSrc = webcamRef.current?.getScreenshot();
 
     if (!imageSrc) return;
 
-    setDetecting(true);
+    detectingRef.current = true;
+
+    let mat: any;
+    let edges: any;
 
     try {
-      const mat = await readImage(imageSrc);
+      mat = await readImage(imageSrc);
 
-      const edges = preprocess(mat);
+      edges = preprocess(mat);
 
       const result = detectCube(edges);
 
@@ -160,35 +184,41 @@ export default function CameraPreview({
 
       if (result.detected) {
         const nextStable = Math.min(
-          stableFrames + 1,
+          stableFramesRef.current + 1,
           REQUIRED_STABLE_FRAMES
         );
+
+        stableFramesRef.current = nextStable;
 
         setStableFrames(nextStable);
 
         if (
           nextStable >= REQUIRED_STABLE_FRAMES &&
-          !autoCapturing &&
-          !isAnalyzing
+          !autoCapturingRef.current &&
+          !analyzingRef.current
         ) {
-          autoCapture();
+          void autoCapture();
         }
-
       } else {
+        stableFramesRef.current = 0;
         setStableFrames(0);
       }
 
-      edges.delete();
-      mat.delete();
-
       result.contour?.delete?.();
-
     } catch (err) {
       console.error(err);
     } finally {
-      setDetecting(false);
+      edges?.delete();
+      mat?.delete();
+
+      detectingRef.current = false;
     }
-  };
+  }, [
+    opencvReady,
+    autoCapture,
+    setCubeDetected,
+    setStableFrames,
+  ]);
 
   /**
    * Start Detection Loop
@@ -196,31 +226,22 @@ export default function CameraPreview({
   useEffect(() => {
     if (!opencvReady) return;
 
-    detectionInterval.current =
-      window.setInterval(() => {
-        analyzeFrame();
-      }, 250);
+    detectionInterval.current = window.setInterval(() => {
+      void analyzeFrame();
+    }, 250);
 
     return () => {
-      if (detectionInterval.current) {
-        clearInterval(
-          detectionInterval.current
-        );
+      if (detectionInterval.current !== null) {
+        clearInterval(detectionInterval.current);
+        detectionInterval.current = null;
       }
     };
-  }, [
-    opencvReady,
-    stableFrames,
-    autoCapturing,
-    isAnalyzing,
-  ]);
+  }, [opencvReady, analyzeFrame]);
 
   if (isComplete) {
     return (
       <ScannerComplete
-        onContinue={() =>
-          console.log("Continue")
-        }
+        onContinue={() => console.log("Continue")}
       />
     );
   }
@@ -269,14 +290,11 @@ export default function CameraPreview({
       <div className="space-y-2">
 
         <div className="flex justify-between text-xs text-zinc-400">
-
           <span>Alignment Stability</span>
 
           <span>
-            {stableFrames}/
-            {REQUIRED_STABLE_FRAMES}
+            {stableFrames}/{REQUIRED_STABLE_FRAMES}
           </span>
-
         </div>
 
         <div className="h-2 rounded-full bg-white/10">
