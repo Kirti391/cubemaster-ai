@@ -1,7 +1,7 @@
 import { DetectedSticker } from "../types/color";
-
+import { sortStickers } from "./sort-stickers";
 export function detectStickers(
-  mat: cv.Mat
+  mat: any
 ): DetectedSticker[] {
   const contours = new cv.MatVector();
   const hierarchy = new cv.Mat();
@@ -48,6 +48,9 @@ export function detectStickers(
 
   contours.delete();
   hierarchy.delete();
-
+if (stickers.length !== 9) {
   return stickers;
+}
+
+return sortStickers(stickers);
 }
