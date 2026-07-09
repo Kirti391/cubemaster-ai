@@ -1,9 +1,3 @@
-export type Sticker = {
-  x: number;
-  y: number;
-  size: number;
-};
-
 export type RGB = {
   r: number;
   g: number;
@@ -11,14 +5,17 @@ export type RGB = {
 };
 
 export type CubeColor =
-  | "U"
-  | "R"
-  | "F"
-  | "D"
-  | "L"
-  | "B";
+  | "white"
+  | "yellow"
+  | "red"
+  | "orange"
+  | "blue"
+  | "green";
 
-export type DetectedSticker = Sticker & {
+export type DetectedSticker = {
+  x: number;
+  y: number;
+  size: number;
+
   rgb?: RGB;
-  color?: CubeColor;
 };

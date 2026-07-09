@@ -1,15 +1,23 @@
+import { CubeColor } from "../../color-recognition/types/color";
+
 export type CubeFace =
-  | "Front"
-  | "Right"
-  | "Back"
-  | "Left"
-  | "Top"
-  | "Bottom";
+  | "U"
+  | "R"
+  | "F"
+  | "D"
+  | "L"
+  | "B";
 
-export type FaceCapture = {
+export interface CapturedFace {
   image: string;
-  completed: boolean;
-  timestamp: number;
-};
 
-export type CapturedFaces = Partial<Record<CubeFace, FaceCapture>>;
+  colors: CubeColor[];
+
+  completed: boolean;
+
+  timestamp: number;
+}
+
+export type CapturedFaces = Partial<
+  Record<CubeFace, CapturedFace>
+>;

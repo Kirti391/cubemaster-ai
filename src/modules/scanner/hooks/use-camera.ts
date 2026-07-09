@@ -1,109 +1,143 @@
 "use client";
 
 import { useState } from "react";
+
 import { CUBE_FACES } from "../constants";
-import { CapturedFaces, CubeFace } from "../types/scanner";
+import {
+  CapturedFaces,
+  CubeFace,
+} from "../types/scanner";
+
+import { CubeColor } from "../../color-recognition/types/color";
+import { buildScannedCube } from "../lib/build-scanned-cube";
 
 export function useCamera() {
-  const [currentFaceIndex, setCurrentFaceIndex] = useState(0);
+  const [currentFaceIndex, setCurrentFaceIndex] =
+    useState(0);
 
   const [capturedFaces, setCapturedFaces] =
     useState<CapturedFaces>({});
-const [cubeDetected, setCubeDetected] = useState(false);
 
-const [stableFrames, setStableFrames] = useState(0);
+  // Scanner state
+  const [cubeDetected, setCubeDetected] =
+    useState(false);
 
-const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [stableFrames, setStableFrames] =
+    useState(0);
 
-const [autoCapturing, setAutoCapturing] = useState(false);
-  // Capture current face
-  const captureFace = (image: string) => {
-    const currentFace = CUBE_FACES[currentFaceIndex] as CubeFace;
+  const [isAnalyzing, setIsAnalyzing] =
+    useState(false);
+
+  const [autoCapturing, setAutoCapturing] =
+    useState(false);
+
+  /**
+   * Capture current face
+   */
+  const captureFace = (
+    image: string,
+    colors: CubeColor[]
+  ) => {
+    const currentFace =
+      CUBE_FACES[currentFaceIndex] as CubeFace;
 
     setCapturedFaces((prev) => ({
       ...prev,
       [currentFace]: {
         image,
+        colors,
         completed: true,
         timestamp: Date.now(),
       },
     }));
 
-    if (currentFaceIndex < CUBE_FACES.length - 1) {
+    if (
+      currentFaceIndex <
+      CUBE_FACES.length - 1
+    ) {
       setCurrentFaceIndex((prev) => prev + 1);
     }
   };
 
+  /**
+   * Jump to a specific face
+   */
   const goToFace = (face: CubeFace) => {
-  const index = CUBE_FACES.indexOf(face);
+    const index = CUBE_FACES.indexOf(face);
 
-  if (index !== -1) {
-    setCurrentFaceIndex(index);
-  }
-};
+    if (index !== -1) {
+      setCurrentFaceIndex(index);
+    }
+  };
 
-const retakeFace = (face: CubeFace) => {
-  goToFace(face);
+  /**
+   * Retake a scanned face
+   */
+  const retakeFace = (face: CubeFace) => {
+    goToFace(face);
 
-  setCapturedFaces((prev) => {
-    const updated = { ...prev };
+    setCapturedFaces((prev) => {
+      const updated = { ...prev };
 
-    delete updated[face];
+      delete updated[face];
 
-    return updated;
-  });
-};
+      return updated;
+    });
+  };
 
-const resetScanner = () => {
-  setCapturedFaces({});
-  setCurrentFaceIndex(0);
-};
-  const progress = Object.keys(capturedFaces).length;
+  /**
+   * Reset scanner
+   */
+  const resetScanner = () => {
+    setCapturedFaces({});
+    setCurrentFaceIndex(0);
 
-  const isComplete = progress === CUBE_FACES.length;
+    setCubeDetected(false);
+    setStableFrames(0);
+    setIsAnalyzing(false);
+    setAutoCapturing(false);
+  };
 
-//  return {
-//   currentFace: CUBE_FACES[currentFaceIndex],
-//   currentFaceIndex,
+const progress =
+  Object.keys(capturedFaces).length;
 
-//   capturedFaces,
+const isComplete =
+  progress === CUBE_FACES.length;
 
-//   captureFace,
+  const cubeState =
+  isComplete
+    ? buildScannedCube(capturedFaces)
+    : null;
 
-//   progress,
+  return {
+    // Current face
+    currentFace:
+      CUBE_FACES[currentFaceIndex],
+    currentFaceIndex,
+cubeState,
+    // Captured faces
+    capturedFaces,
+    captureFace,
 
-//   isComplete,
+    // Progress
+    progress,
+    isComplete,
 
-//   goToFace,
-//   retakeFace,
-//   resetScanner,
-// };
-return {
-  currentFace: CUBE_FACES[currentFaceIndex],
-  currentFaceIndex,
+    // Navigation
+    goToFace,
+    retakeFace,
+    resetScanner,
 
-  capturedFaces,
+    // Scanner state
+    cubeDetected,
+    stableFrames,
+    isAnalyzing,
+    autoCapturing,
 
-  captureFace,
-
-  progress,
-
-  isComplete,
-
-  goToFace,
-  retakeFace,
-  resetScanner,
-
-  // Scanner State
-  cubeDetected,
-  stableFrames,
-  isAnalyzing,
-  autoCapturing,
-
-  // Setters
-  setCubeDetected,
-  setStableFrames,
-  setIsAnalyzing,
-  setAutoCapturing,
-};
+    // State setters
+    setCubeDetected,
+    setStableFrames,
+    setIsAnalyzing,
+    setAutoCapturing,
+  };
 }

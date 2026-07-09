@@ -7,7 +7,8 @@ import { Button } from "@/src/components/ui/button";
 
 import ScannerOverlay from "./scanner-overlay";
 import ScannerComplete from "./scanner-complete";
-
+import { processFace } from "../../color-recognition/lib";
+import { CubeColor } from "../../color-recognition/types/color";
 import {
   readImage,
   preprocess,
@@ -16,10 +17,15 @@ import {
 } from "../opencv";
 
 import { useOpenCV } from "../hooks/use-opencv";
+import { color } from "framer-motion";
+import { colors } from "@/src/design-system/tokens";
 
 type Props = {
   currentFace: string;
-  captureFace: (image: string) => void;
+captureFace: (
+  image: string,
+  colors: CubeColor[]
+) => void;
   isComplete: boolean;
 
   cubeDetected: boolean;
@@ -88,55 +94,70 @@ export default function CameraPreview({
   /**
    * Capture current frame
    */
-  const handleCapture = useCallback(async () => {
-    if (!opencvReady) return;
+const handleCapture = useCallback(async () => {
+  if (!opencvReady) return;
 
-    if (captureLockRef.current) return;
+  if (captureLockRef.current) return;
 
-    captureLockRef.current = true;
+  captureLockRef.current = true;
+  setIsAnalyzing(true);
 
-    setIsAnalyzing(true);
+  const imageSrc =
+    webcamRef.current?.getScreenshot();
 
-    const imageSrc =
-      webcamRef.current?.getScreenshot();
+  if (!imageSrc) {
+    captureLockRef.current = false;
+    setIsAnalyzing(false);
+    return;
+  }
 
-    if (!imageSrc) {
-      captureLockRef.current = false;
-      setIsAnalyzing(false);
-      return;
-    }
+  setCapturedImage(imageSrc);
 
-    setCapturedImage(imageSrc);
+ let mat: any;
+let edges: any;
 
-    let mat: any;
-    let edges: any;
+  try {
+    console.log("Reading image...");
 
-    try {
-      mat = await readImage(imageSrc);
+    mat = await readImage(imageSrc);
 
-      edges = preprocess(mat);
+    console.log("Running preprocessing...");
 
-      const processed =
-        matToCanvas(edges);
+    edges = preprocess(mat);
 
-      setProcessedImage(processed);
+    const processed =
+      matToCanvas(edges);
 
-      captureFace(imageSrc);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      edges?.delete();
-      mat?.delete();
+    setProcessedImage(processed);
 
-      setIsAnalyzing(false);
+    console.log("Detecting colors...");
 
-      captureLockRef.current = false;
-    }
-  }, [
-    opencvReady,
-    captureFace,
-    setIsAnalyzing,
-  ]);
+    // Use ORIGINAL IMAGE, not edge image
+    const colors =
+      processFace(mat);
+
+    console.log("Detected colors:", colors);
+
+    captureFace(imageSrc, colors);
+
+  } catch (err) {
+    console.error(
+      "Capture failed:",
+      err
+    );
+  } finally {
+    edges?.delete();
+    mat?.delete();
+
+    setIsAnalyzing(false);
+
+    captureLockRef.current = false;
+  }
+}, [
+  opencvReady,
+  captureFace,
+  setIsAnalyzing,
+]);
 
   /**
    * Automatic capture
