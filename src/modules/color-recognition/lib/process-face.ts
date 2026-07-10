@@ -5,23 +5,28 @@ import { classifyColors } from "./classify-colors";
 import { CubeColor } from "../types/color";
 
 export function processFace(
-  originalMat: any
+  originalMat: any,
+  edgeMat: any
 ): CubeColor[] {
-  // Detect stickers directly from the original image
-  const stickers = detectStickers(originalMat);
+  console.log("processFace()");
+
+  console.log("Detecting stickers...");
+  const stickers = detectStickers(edgeMat);
+
+  console.log("Detected:", stickers.length);
 
   if (stickers.length !== 9) {
     throw new Error(
-      `Expected 9 stickers, detected ${stickers.length}.`
+      `Expected 9 stickers, found ${stickers.length}`
     );
   }
 
-  // Sample sticker colors from the original image
-  const sampledColors = sampleColors(
+  console.log("Sampling colors...");
+  const sampled = sampleColors(
     originalMat,
     stickers
   );
 
-  // Convert RGB -> CubeColor
-  return classifyColors(sampledColors);
+  console.log("Classifying...");
+  return classifyColors(sampled);
 }

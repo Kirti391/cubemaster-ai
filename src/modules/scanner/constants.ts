@@ -1,23 +1,22 @@
 import { CubeFace } from "./types/scanner";
 
 export const CUBE_FACES: CubeFace[] = [
-  "F",
-  "R",
-  "B",
-  "L",
   "U",
+  "R",
+  "F",
   "D",
+  "L",
+  "B",
 ];
 
 export const FACE_LABELS: Record<CubeFace, string> = {
-  F: "Front",
-  R: "Right",
-  B: "Back",
-  L: "Left",
   U: "Top",
+  R: "Right",
+  F: "Front",
   D: "Bottom",
+  L: "Left",
+  B: "Back",
 };
-
 export const SCANNER_INSTRUCTIONS = [
   "Keep the cube centered inside the frame.",
   "Make sure the entire face is visible.",

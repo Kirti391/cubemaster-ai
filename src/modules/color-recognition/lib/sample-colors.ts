@@ -14,11 +14,15 @@ export function sampleColors(
 
     const startX =
       sticker.x +
-      Math.floor((sticker.size - sampleSize) / 2);
+      Math.floor(
+        (sticker.size - sampleSize) / 2
+      );
 
     const startY =
       sticker.y +
-      Math.floor((sticker.size - sampleSize) / 2);
+      Math.floor(
+        (sticker.size - sampleSize) / 2
+      );
 
     let r = 0;
     let g = 0;
@@ -30,11 +34,15 @@ export function sampleColors(
       y < startY + sampleSize;
       y++
     ) {
+      if (y < 0 || y >= mat.rows) continue;
+
       for (
         let x = startX;
         x < startX + sampleSize;
         x++
       ) {
+        if (x < 0 || x >= mat.cols) continue;
+
         const pixel = mat.ucharPtr(y, x);
 
         b += pixel[0];
@@ -43,6 +51,12 @@ export function sampleColors(
 
         pixels++;
       }
+    }
+
+    if (pixels === 0) {
+      throw new Error(
+        "Failed to sample sticker colors."
+      );
     }
 
     const rgb: RGB = {

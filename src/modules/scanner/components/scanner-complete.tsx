@@ -1,34 +1,129 @@
 "use client";
 
-import { CheckCircle2 } from "lucide-react";
+import Image from "next/image";
+
+import {
+  FACE_LABELS,
+  CUBE_FACES,
+} from "../constants";
+
+import {
+  CapturedFaces,
+  CubeFace,
+} from "../types/scanner";
+
 import { Button } from "@/src/components/ui/button";
 
 type Props = {
-  onContinue: () => void;
+  capturedFaces: CapturedFaces;
+  progress: number;
+  retakeFace: (face: CubeFace) => void;
 };
 
-export default function ScannerComplete({
-  onContinue,
+export default function UploadPanel({
+  capturedFaces,
+  progress,
+  retakeFace,
 }: Props) {
   return (
-    <div className="flex h-full min-h-[500px] flex-col items-center justify-center rounded-3xl border border-cyan-500/20 bg-gradient-to-br from-cyan-500/10 to-violet-500/10 p-10 text-center">
+    <section className="rounded-3xl border border-white/10 bg-white/5 p-6">
 
-      <CheckCircle2 className="mb-6 h-20 w-20 text-green-400" />
+      <div className="mb-6 flex items-center justify-between">
 
-      <h2 className="text-3xl font-bold text-white">
-        Scan Complete
-      </h2>
+        <div>
 
-      <p className="mt-3 max-w-md text-zinc-400">
-        All six cube faces have been captured successfully.
-        Your cube is ready for AI analysis.
-      </p>
+          <h2 className="text-2xl font-bold">
+            Captured Faces
+          </h2>
 
-     <Button className="h-12 px-8 text-base"
-        onClick={onContinue}
-      >
-        Continue to AI Analysis
-      </Button>
-    </div>
+          <p className="text-zinc-400">
+            {progress} of 6 faces captured
+          </p>
+
+        </div>
+
+      </div>
+
+      <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+
+        {CUBE_FACES.map((face) => {
+
+          const capture =
+            capturedFaces[face];
+
+          return (
+
+            <div
+              key={face}
+              className="rounded-2xl border border-white/10 bg-black/20 p-4"
+            >
+
+              <div className="mb-3 flex items-center justify-between">
+
+                <h3 className="font-semibold">
+
+                  {FACE_LABELS[face]}
+
+                </h3>
+
+                {capture ? (
+                  <span className="text-green-400">
+                    ✓
+                  </span>
+                ) : (
+                  <span className="text-zinc-500">
+                    —
+                  </span>
+                )}
+
+              </div>
+
+              {capture ? (
+
+                <>
+
+                  <div className="relative aspect-square overflow-hidden rounded-xl">
+
+                    <Image
+                      src={capture.image}
+                      alt={FACE_LABELS[face]}
+                      fill
+                      className="object-cover"
+                      unoptimized
+                    />
+
+                  </div>
+
+                  <Button
+                    variant="outline"
+                    className="mt-4 w-full"
+                    onClick={() =>
+                      retakeFace(face)
+                    }
+                  >
+                    Retake
+                  </Button>
+
+                </>
+
+              ) : (
+
+                <div className="flex aspect-square items-center justify-center rounded-xl border border-dashed border-zinc-700 text-sm text-zinc-500">
+
+                  Not Captured
+
+                </div>
+
+              )}
+
+            </div>
+
+          );
+
+        })}
+
+      </div>
+
+    </section>
   );
 }
